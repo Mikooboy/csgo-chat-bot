@@ -24,16 +24,19 @@ Add your Steam Web API key to the `cscb.py` file to get the `!info` command to w
 
 ## Commands
 
-    !help         - prints out the list of avaible commands to the chat
+    !help        - Prints out the list of avaible commands to the chat
     
-    <name> !info  - Tries to get <name>'s game stats including: K/D ratio, Play time and total rounds played on the current map.
-                  - Example:
-                      miko !info
-                    returns: 
-                      miko | K/D: 1.13 Hours: 1595 cs_italy: 86 rounds
+    <name> !info - Tries to get <name>'s game stats including: K/D ratio, Play time and 
+                   total rounds played on the current map.
+                 - Example:
+                     miko !info
+                   returns: 
+                     miko | K/D: 1.13 Hours: 1595 cs_italy: 86 rounds
                       
-    <math> !calc  - Calculates the math expression in <math> and returns the answer
-                  - Example:
-                      (5 + 5) * 2 !calc
-                    returns:
-                      (5 + 5) * 2 = 20
+    <math> !calc - Calculates the math expression in <math> and returns the answer
+                 - Example:
+                     (5 + 5) * 2 !calc
+                   returns:
+                     (5 + 5) * 2 = 20
+  
+    !swquote     - Prints out a random Star Wars quote
