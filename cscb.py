@@ -77,15 +77,17 @@ def main():
 		print("Connection refused. Make sure you have the following launch option set:")
 		print(colored("  -netconport "+str(tn_port), attrs=['bold']))
 		sys.exit(1)
-	tn.write(b"echo CS Chat Bot Active, use chat or echo in console to execute commands\n")
+	tn.write(b"echo CS:GO Chat Bot Active, use chat or echo <command> in console to execute commands\n")
 	tn.read_until(b"commands")
 	print("Successfully Connected")
 	
 	print("Listening for command from console")
+
+	lastQuote = ""
 	
 	while True:
 		# Capture console output until we encounter our exec string
-		result = tn.expect([b"!calc", b"!help", b"!info"])
+		result = tn.expect([b"!calc", b"!help", b"!info", b"!swquote"])
 
 		# Calculator
 		if (result[0] == 0):
@@ -240,6 +242,31 @@ def main():
 					run(tn, "say Error: Couldn't retrieve info")
 					print("Error: Couldn't retrieve info")
 					print("Make sure that the API key is correct")
+
+
+
+		# Star Wars Quote
+		if (result[0] == 3):
+			sleep(0.7)
+
+			url = 'http://swquotesapi.digitaljedi.dk/api/SWQuote/RandomStarWarsQuote'
+
+			try:
+				r = requests.get(url).json()
+
+				quote = r['starWarsQuote']
+
+				while (quote == lastQuote):
+					r = requests.get(url).json()
+					quote = r['starWarsQuote']
+
+				lastQuote = quote
+
+				run(tn, "say " + str(quote))
+				print(quote)
+			except:
+				run(tn, "say Error: Failed to retrieve quote")
+				print("failed to get quote")
 
 
 
