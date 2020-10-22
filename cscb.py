@@ -77,7 +77,7 @@ def main():
 		print("Connection refused. Make sure you have the following launch option set:")
 		print(colored("  -netconport "+str(tn_port), attrs=['bold']))
 		sys.exit(1)
-	tn.write(b"echo CSCTL Active, use chat or echo in console to execute commands\n")
+	tn.write(b"echo CS Chat Bot Active, use chat or echo in console to execute commands\n")
 	tn.read_until(b"commands")
 	print("Successfully Connected")
 	
