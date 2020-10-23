@@ -131,7 +131,7 @@ def main():
 		if (result[0] == 1):
 			sleep(0.7) # csgo chat cooldown
 
-			run(tn, "say List of commands: !​help, <name> !​info, <math> !​calc, !swquote")
+			run(tn, "say List of commands: !​help, <name> !​info, <math> !​calc, !​swquote")
 			print("!help")
 		
 
