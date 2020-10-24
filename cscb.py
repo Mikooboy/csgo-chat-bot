@@ -38,8 +38,11 @@ def signal_handler(signal, frame):
 def processExists(processName):
 	procList = []
 	for proc in psutil.process_iter(['name']):
-		if proc.info['name'].lower() == processName.lower():
-			return True
+		try:
+			if proc.info['name'].lower() == processName.lower():
+				return True
+		except:
+			pass
 	return False
 
 # Runs commands on the csgo console
