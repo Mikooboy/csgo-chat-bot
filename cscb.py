@@ -8,6 +8,7 @@ import datetime
 import re
 import hashlib
 import requests
+import os
 from math import *
 from random import randrange
 from termcolor import colored
@@ -20,6 +21,9 @@ api_key = '' # Insert your Steam Web API key here
 tn_host = "127.0.0.1"
 tn_port = "2121"
 cfg_path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Counter-Strike Global Offensive\\csgo\\cfg\\"
+
+clear = lambda: os.system('cls')
+clear()
 
 def steamid_to_64bit(steamid):
     steam64id = 76561197960265728 # I honestly don't know where
@@ -83,8 +87,11 @@ def main():
 	tn.write(b"echo CS:GO Chat Bot Active, use chat or echo <command> in console to execute commands\n")
 	tn.read_until(b"commands")
 	print("Successfully Connected")
+
+	sleep(1)
+	clear()
 	
-	print("Listening for command from console")
+	print("Listening for command from console...")
 
 	lastQuote = ""
 	
@@ -135,12 +142,12 @@ def main():
 			sleep(0.7) # csgo chat cooldown
 
 			run(tn, "say List of commands: !​help, <name> !​info, <math> !​calc, !​swquote")
-			print("!help")
+			print("printing help")
 		
 
 
 		# Player info
-		if (result[0] == 4):
+		if (result[0] == 2):
 			sleep(0.7)
 
 			try:
@@ -151,14 +158,19 @@ def main():
 				game_info 	= True
 				hour_info 	= True
 
-				splitted 	= result[2].decode("utf-8").split(" ")
-				name 		= splitted[len(splitted)-2]
+				results 	= result[2].splitlines()
+				info_line 	= results[len(results) - 1]
+
+				splitted 	= info_line.decode("utf-8").split(" : ")
+				
+				name 		= splitted[len(splitted) - 1]
+				name 		= name.replace(" !info", "")
 
 				matching 	 = 0
 				matching_map = 0
 
 				run(tn, "status")
-				status = tn.expect([b"#end"])
+				status = tn.expect([b"#end"], timeout=1)
 				lines  = status[2].decode("utf-8").splitlines()
 				
 				for i in lines:
