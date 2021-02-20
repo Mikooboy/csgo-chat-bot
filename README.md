@@ -1,4 +1,4 @@
-# CS:GO Chat Bot (WIP)
+# CS:GO Chat Bot
 
 A chat bot for CS:GO that reads the CS:GO console over telnet. The chat commands can be sent using the chat or using `echo <command>` in the console.
 
