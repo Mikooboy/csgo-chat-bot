@@ -8,26 +8,43 @@ import datetime
 import re
 import hashlib
 import requests
+import shlex
 import os
+import time
+import pickle
+import math
+from threading import Thread
+from pydicti import dicti
+from texttable import Texttable
 from math import *
 from random import randrange
-from termcolor import colored
 from time import sleep
 from os import path
+import info
+import urllib3
+import config as cfg
 
-# Config
-api_key = '' # Insert your Steam Web API key here
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-tn_host = "127.0.0.1"
-tn_port = "2121"
-cfg_path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Counter-Strike Global Offensive\\csgo\\cfg\\"
+start_time = time.time()
+
+colors = {
+	"green" : "",
+	"blue" : "",
+	"darkblue" : "",
+	"darkred" : "",
+	"gold" : "",
+	"lightgreen" : "",
+	"lightred" : "",
+	"lime" : "",
+	"orchid" : "",
+}
 
 clear = lambda: os.system('cls')
 clear()
 
 def steamid_to_64bit(steamid):
-    steam64id = 76561197960265728 # I honestly don't know where
-                                    # this came from, but it works...
+    steam64id = 76561197960265728 # I honestly don't know where this came from, but it works...
     id_split = steamid.split(":")
     steam64id += int(id_split[2]) * 2 # again, not sure why multiplying by 2...
     if id_split[1] == "1":
@@ -40,13 +57,9 @@ def signal_handler(signal, frame):
 
 # List PIDs of processes matching processName
 def processExists(processName):
-	procList = []
 	for proc in psutil.process_iter(['name']):
-		try:
-			if proc.info['name'].lower() == processName.lower():
-				return True
-		except:
-			pass
+		if proc.info['name'].lower() == processName.lower():
+			return True
 	return False
 
 # Runs commands on the csgo console
@@ -57,11 +70,64 @@ def run(txn, command):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+def change_clan():
+	try:
+		tn2 = telnetlib.Telnet(cfg.settings["tn_host"], cfg.settings["tn_port"])
+		id_list = cfg.settings["clan_id_list"]
+		print("started changing clan")
+
+		stop = -1
+		i = 0
+		while (stop != 0):
+			stop = tn2.expect([b"!abort_clan"], timeout=0.25)
+			stop = stop[0]
+			run(tn2, "cl_clanid \"" + str(id_list[i]) + "\"")
+			if (i == 3):
+				i = 0
+			else:
+				i += 1
+	except:
+		pass
+	print("stopped changing clan")
+
+def get_players_and_map(name, tn):
+    status_start = 0
+    player_lines = []
+
+    run(tn, "status")
+    status = tn.expect([b"#end"], timeout=1)
+    lines = status[2].decode("utf-8").splitlines()
+
+    lines.pop(len(lines) - 1)
+
+    j = 0
+    for i in lines:
+        if "# userid" in i.lower():
+            status_start = j
+        j = j + 1
+
+    player_lines = lines[status_start + 1:]
+
+    for i in lines:
+        if "map" in i.lower():
+            matching_map = i
+    
+    mapName = matching_map.split()
+    mapName = mapName[2]
+
+    return [player_lines, mapName]
+
+def parse_name(player_line):
+    line_split = shlex.split(player_line)
+    name = line_split[3]
+    name = name.replace('"', "")
+    return name
+
 def main():
 	if (len(sys.argv) > 1):
 		if (sys.argv[1] == "-h" or sys.argv[1] == "--help"):
-			print(colored("Run with no arguments to initiate and connect to csgo", attrs=['bold']))
-			print(colored("Make sure you set up csgo to receive connections with this launch option: -netconport "+str(tn_port), attrs=['bold']))
+			print("Run with no arguments to initiate and connect to csgo")
+			print("Make sure you set up csgo to receive connections with this launch option: -netconport " + str(cfg.settings["tn_port"]))
 	
 	# Make sure cs:go is running before trying to connect
 	if not processExists("csgo.exe"):
@@ -71,212 +137,144 @@ def main():
 		sleep(10)
 
 	# Initialize csgo telnet connection
-	print("Trying " + tn_host + ":" + tn_port + "...")
+	print("Trying " + cfg.settings["tn_host"] + ":" + cfg.settings["tn_port"] + "...")
 	try:
-		tn = telnetlib.Telnet(tn_host, tn_port)
+		tn = telnetlib.Telnet(cfg.settings["tn_host"], cfg.settings["tn_port"])
 	except ConnectionRefusedError:
 		# Retry in 10 seconds
 		sleep(10)
 		pass
 	try:
-		tn = telnetlib.Telnet(tn_host, tn_port)
+		tn = telnetlib.Telnet(cfg.settings["tn_host"], cfg.settings["tn_port"])
 	except ConnectionRefusedError:
 		print("Connection refused. Make sure you have the following launch option set:")
-		print(colored("  -netconport "+str(tn_port), attrs=['bold']))
+		print("  -netconport "+str(cfg.settings["tn_port"]))
 		sys.exit(1)
-	tn.write(b"echo CS:GO Chat Bot Active, use chat or echo <command> in console to execute commands\n")
+	tn.write(b"echo CSCTL Active, use chat or echo in console to execute commands\n")
 	tn.read_until(b"commands")
-	print("Successfully Connected")
+	print("Successfully Connected!")
 
 	sleep(1)
 	clear()
 	
-	print("Listening for command from console...")
+	print("Listening for commands from console...")
 
 	lastQuote = ""
-	
+
+	info_list = dicti()
+
 	while True:
 		# Capture console output until we encounter our exec string
-		result = tn.expect([b"!calc", b"!help", b"!info", b"!swquote"])
+		result = tn.expect([b"!calc\r\n", b"!help\r\n", b"!info\r\n", b"\* !info \r\n", b"!swquote\r\n", b" connected.", b"!bot", b"!clan", b"!clear"])
+
+
 
 		# Calculator
 		if (result[0] == 0):
-			sleep(0.7) # csgo chat cooldown
-
-			splitted 		= result[2].decode("utf-8").split(": ")
-			splitted_again 	= splitted[len(splitted)-1].split(" !")
-			calc 			= splitted_again[0]
-			print(calc)
-
-			answer = "Error"
-
 			try:
-				answer = eval(calc, {'sqrt': sqrt, 'pow': pow})
+				sleep(0.7)
+
+				splitted = result[2].decode("utf-8").split(": ")
+				splitted_again = splitted[len(splitted)-1].split(" !")
+				calc = splitted_again[0]
+				print(calc)
+
+				answer = "Error"
+
+				try:
+					answer = eval(calc, {'sqrt': sqrt, 'pow': pow})
+				except:
+					pass
+
+				run(tn, "say " + str(calc) + " = " + str(answer))
+				print(answer)
 			except:
 				pass
-
-			tokens 		= []
-			tokenizer 	= re.compile(r'\s*([()+*/-]|\d+)')
-			current_pos = 0
-
-			while current_pos < len(calc):
-				match = tokenizer.match(calc, current_pos)
-
-				if match is None:
-					answer = "SyntaxError"
-					tokens = []
-					break
-
-				tokens.append(match.group(1))
-				current_pos = match.end()
-
-			separated = " ".join(str(x) for x in tokens)
-
-			run(tn, "say " + separated + " = " + str(answer))
-			print(separated + " = " + str(answer))
 
 
 
 		# help
 		if (result[0] == 1):
-			sleep(0.7) # csgo chat cooldown
+			try:
+				sleep(0.7)
 
-			run(tn, "say List of commands: !​help, <name> !​info, <math> !​calc, !​swquote")
-			print("printing help")
+				run(tn, "say List of commands: !​help, <name> !​info, <math> !​calc, !​swquote")
+				print("!help")
+			except:
+				pass
 		
 
 
 		# Player info
-		if (result[0] == 2):
-			sleep(0.7)
-
+		if (result[0] == 2) or (result[0] == 3):
 			try:
-				kdratio 	= "N/A" # Kill Death Ratio
-				timeplayed 	= "N/A" #time played
-				rounds 		= "N/A"
+				sleep(0.7)
 
-				game_info 	= True
-				hour_info 	= True
+				results = result[2].decode("utf-8").splitlines()
+				name = info.get_name(results)
 
-				results 	= result[2].splitlines()
-				info_line 	= results[len(results) - 1]
-
-				splitted 	= info_line.decode("utf-8").split(" : ")
-				
-				name 		= splitted[len(splitted) - 1]
-				name 		= name.replace(" !info", "")
-
-				matching 	 = 0
-				matching_map = 0
-
-				run(tn, "status")
-				status = tn.expect([b"#end"], timeout=1)
-				lines  = status[2].decode("utf-8").splitlines()
-				
-				for i in lines:
+				for i in info_list:
 					if name.lower() in i.lower():
-						matching = i
-				
-				for i in lines:
-					if "map" in i.lower():
-						matching_map = i
-				
-				mapName = matching_map.split()
-				mapName = mapName[2]
+						name = i
 
-				if (matching == 0) or (len(name) < 2):
-					if (len(name) >= 2):
-						run(tn, "say Error: Invalid name")
-						print("Error: Invalid name")
-				else:
+				if (name != "*all* ") & (name in info_list):
 					try:
-						match_split = matching.split()
-
-						playerId = None
-
-						for i in match_split:
-							if "steam_1" in i.lower():
-								playerId = i
-						
-						playerId64 = steamid_to_64bit(playerId)
-
-						print("Request info for: " + str(name))
-
-						url 	= 'https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?appid=730&key=A301D46D7F32FF49C1A24426B8A7D72D&steamid='
-						url2 	= 'http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=A301D46D7F32FF49C1A24426B8A7D72D&steamid='
-						final_url 	= url + str(playerId64)
-						final_url2 	= url2 + str(playerId64)
-						try:
-							r = requests.get(final_url).json()
-							stats = {
-								'total_kills' 	: r['playerstats']['stats'][0]['value'], #total kills
-								'total_deaths' 	: r['playerstats']['stats'][1]['value'], #total deaths
-								'map_rounds'	: "N/A"
-							}
-
-							for i in (r['playerstats']['stats']):
-								id = i['name']
-								if ("rounds" in id) and (mapName in id):
-									stats['map_rounds'] = i['value']
-
-							kd = stats['total_kills']/stats['total_deaths'] #kill death ratio
-
-							rounds 	= str(stats['map_rounds'])
-							kdratio 	= str("{:.2f}".format(kd)) # Kill Death Ratio
-						except:
-							game_info = False
-
-						try:
-							r2 = requests.get(final_url2).json()
-							games = r2['response']['games'] #total time played
-
-							for i in games:
-								id = i['appid']
-								if (id == 730):
-									time_played = i['playtime_forever']
-
-							hours = time_played/60 #minute to hours
-							timeplayed 	= str(floor(hours)) #time played
-						except:
-							hour_info = False
-						
-						if (not game_info) and (not hour_info):
-							run(tn, "say Error: Game and hour info private")
-							sleep(0.7)
-						elif (not game_info):
-							run(tn, "say Error: Game info private")
-							sleep(0.7)
-						elif (not hour_info):
-							run(tn, "say Error: Hour info private")
-							sleep(0.7)
-
-						run(tn, "say " + str(name) + " | K/D: " + str(kdratio) + " Hours: " + str(timeplayed) + " " + str(mapName) + ": " + str(rounds) + " rounds")
-						print(str(name) + " | K/D: " + str(kdratio) + " Hours: " + str(timeplayed) + " " + str(mapName) + ": " + str(rounds) + " rounds")
+						run(tn, "say " + name + " | " + str(info_list[name]))
 					except:
-						run(tn, "say Error: Couldn't retrieve info")
-						print("Error: Couldn't retrieve info")
-			except:
-				run(tn, "say Error: Unknown error")
-				print("say Error: Unknown error")
+						print("Couldn't retrieve info")
+				elif (name != "*all* ") & (not name in info_list):
+					try:
+						PlayersAndMap = get_players_and_map(name, tn)
+						players = PlayersAndMap[0]
+						name_found = False
+						for i in players:
+							if name.lower() in i.lower():
+								name = i
+								name_found = True
 
+						if (name_found == False):
+							run(tn, "say Error: Invalid name")
+						else:
+							name = parse_name(name)
+
+							print("fetching player info table")
+							run(tn, "say Fetching player info table...")
+							info_list = info.getInfo("*all* ", tn)
+							sleep(0.7)
+							run(tn, "say " + name + " | " + str(info_list[name]))
+							print(name + " | " + str(info_list[name]))
+					except:
+						print("Couldn't retrieve info")
+				elif (name == "*all* "):
+					try:
+						info_list = info.getInfo(name, tn)
+					except:
+						print("Couldn't retrieve info")
+				else:
+					run(tn, "say Error: Invalid name")
+			except:
+				pass
+			
 
 
 		# Star Wars Quote
-		if (result[0] == 3):
-			sleep(0.7)
-
-			url = 'http://swquotesapi.digitaljedi.dk/api/SWQuote/RandomStarWarsQuote'
-
+		if (result[0] == 4):
 			try:
-				r = requests.get(url).json()
+				sleep(0.7)
 
-				quote = r['starWarsQuote']
+				url = 'http://swquotesapi.digitaljedi.dk/api/SWQuote/RandomStarWarsQuote'
+
+				r = requests.get(url, verify=False).json()
+
+				quote = r['content']
 
 				while (quote == lastQuote):
-					r = requests.get(url).json()
-					quote = r['starWarsQuote']
+					r = requests.get(url, verify=False).json()
+					quote = r['content']
 
 				lastQuote = quote
+
+				quote = quote.replace(";", ".")
 
 				run(tn, "say " + str(quote))
 				print(quote)
@@ -284,6 +282,70 @@ def main():
 				run(tn, "say Error: Failed to retrieve quote")
 				print("failed to get quote")
 
+		
+
+		# clear console on connect
+		if (result[0] == 5):
+			try:
+				run(tn, "name")
+				result2 = tn.expect([b"- Current user name"])
+				name_line = result2[2].decode("utf-8").splitlines()
+				name = name_line[len(name_line) - 1]
+				name = shlex.split(name)
+				name = name[2]
+
+				connect_name = result[2].decode("utf-8").splitlines()
+				connect_name = connect_name[len(connect_name) - 1]
+				connect_name = connect_name.replace(" connected.", "")
+
+				if (name == connect_name):
+					run(tn, "clear")
+					print("Console cleared")
+					run(tn, "*all* !info")
+			except:
+				pass
+
+
+		
+		# bot info
+		if (result[0] == 6):
+			try:
+				uptime = floor(time.time() - start_time)
+				bot_seconds = uptime % 3600 % 60
+				bot_minutes = uptime % 3600 // 60
+				bot_hours = uptime // 3600
+
+				run(tn, "name")
+				result2 = tn.expect([b"- Current user name"])
+				name_line = result2[2].decode("utf-8").splitlines()
+				name = name_line[len(name_line) - 1]
+				name = shlex.split(name)
+				name = name[2]
+
+				run(tn, "playerchatwheel . \"Chatbot Uptime: " + str(bot_hours) + "h " + str(bot_minutes) + "m " + str(bot_seconds) + "s\"")
+				run(tn, "playerchatwheel . \"Chatbot Listening to port: " + str(cfg.settings["tn_port"]) + "\"")
+				run(tn, "playerchatwheel . \"Chatbot Host: " + str(name) + "\"")
+			except:
+				pass
+
+
+
+		# Clan tag changer
+		if (result[0] == 7):
+			try:
+				thread1 = Thread(target=change_clan)
+				thread1.start()
+			except:
+				pass
+
+
+		
+		# clear chat
+		if (result[0] == 8):
+			try:
+				run(tn, "say                                   ")
+			except:
+				pass
 
 
 if __name__== "__main__":

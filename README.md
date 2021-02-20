@@ -18,9 +18,10 @@ Run the chat bot:
 
     python cscb.py
 
-Add your Steam Web API key to the `cscb.py` file to get the `!info` command to work:
+Add your Steam and faceit API keys to the `config.py` file to get the `!info` command to work fully:
 
-    api_key = '' # Insert your Steam Web API key here
+    steam_api_key = '' # Steam web API key here to get steam/game stats
+    faceit_api_key = '' # Faceit API key here to get faceit levels
 
 ## Commands
 
@@ -32,6 +33,9 @@ Add your Steam Web API key to the `cscb.py` file to get the `!info` command to w
                      miko !info
                    returns: 
                      miko | K/D: 1.13 Hours: 1595 cs_italy: 86 rounds
+
+    *all* !info  - Get the info table containing all the players in the game
+                 - This prints the whole table in easy to read format to the cmd
                       
     <math> !calc - Calculates the math expression in <math> and returns the answer
                  - Example:
@@ -40,3 +44,14 @@ Add your Steam Web API key to the `cscb.py` file to get the `!info` command to w
                      (5 + 5) * 2 = 20
   
     !swquote     - Prints out a random Star Wars quote
+
+    !bot         - Prints info about the bot to the chat
+
+    !clan        - Starts cycling through the clans listed in the `config.py` file
+                 - Used for animating the steam group on scoreboard
+                 - You need to be a member of the groups in the `config.py` file
+    
+    !abort_clan  - Stops cycling through the clans
+
+    !clear       - Sends a long empty chat message that "clears" the chat
+                 - Run this through the console or a keybind
