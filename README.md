@@ -22,6 +22,8 @@ Add your Steam and faceit API keys to the `config.py` file to get the `!info` co
 
     steam_api_key = '' # Steam web API key here to get steam/game stats
     faceit_api_key = '' # Faceit API key here to get faceit levels
+    
+**Note**: Use the full authorization string for the faceit_api_key: `"Bearer <api_key>"`
 
 ## Commands
 
