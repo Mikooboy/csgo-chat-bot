@@ -34,7 +34,7 @@ Add your Steam and faceit API keys to the `config.py` file to get the `!info` co
                  - Example:
                      miko !info
                    returns: 
-                     miko | K/D: 1.13 Hours: 1595 cs_italy: 86 rounds
+                     Miko | Hours: 1595 K/D: 1.13 HS: 42% cs_italy: 86 rounds Faceit: lvl 3
 
     *all* !info  - Get the info table containing all the players in the game
                  - This prints the whole table in easy to read format to the cmd
