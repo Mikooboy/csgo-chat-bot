@@ -1,6 +1,6 @@
 # CS:GO Chat Bot
 
-A chat bot for CS:GO that reads the CS:GO console over telnet. The chat commands can be sent using the chat or using `echo <command>` in the console.
+A chatbot for CS:GO that reads the CS:GO console over telnet. The chat commands can be sent using the chat or using `echo <command>` in the console.
 
 Huge thanks to [@403-Fruit](https://github.com/403-Fruit) for sharing [this project](https://github.com/403-Fruit/csctl)! The project helped me a lot when figuring out how to do things.
 
